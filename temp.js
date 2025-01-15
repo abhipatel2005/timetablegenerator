@@ -1,13 +1,67 @@
 const express = require('express');
 const path = require('path');
+const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const app = express();
+const http = require('http');
+const { Server } = require("socket.io");
+const session = require('express-session');
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
+const dotenv = require('dotenv');
+dotenv.config();
+const mongo_user = process.env.MONGO_USER;
+const mongo_pass = process.env.MONGO_PASS;
+const mongoURL = `mongodb+srv://${mongo_user}:${mongo_pass}@cluster0.sgjxjjr.mongodb.net/`;
 
-// Middleware setup
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server)
+const port = 3000;
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static("public"));
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+
+app.use(session({
+    secret: `${process.env.SECRET}`,
+    resave: false,
+    saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+mongoose.connect(mongoURL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+    .then(() => {
+        console.log("Connected to MongoDB Atlas");
+    })
+    .catch((err) => {
+        console.error("Error connecting to MongoDB Atlas:", err);
+    });
+
+const userSchema = new mongoose.Schema({
+    username: String,
+    password: String,
+    userRole: String
+});
+
+userSchema.plugin(passportLocalMongoose);
+
+const User = new mongoose.model("User", userSchema);
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+app.get("/", (req, res) => {
+    res.render("register.ejs");
+});
+
+app.get("/login", (req, res) => {
+    res.render("login.ejs");
+});
 
 // Initial data structures
 const subjects = [
@@ -247,14 +301,20 @@ app.post('/generate-timetable', (req, res) => {
 });
 
 // Routes
-app.get('/', (req, res) => {
+app.get('/user', (req, res) => {
+    if (req.isAuthenticated() && req.user.userRole === 'user') {
+        res.render('user')
+    }
+});
+
+app.get('/admin', (req, res) => {
     res.render('index', {
         subjects,
         faculty,
         timetables,
         slots,
         days,
-        error: null
+        error: null,
     });
 });
 
@@ -318,6 +378,61 @@ app.get('/export/:semester/:division', (req, res) => {
     res.header('Content-Type', 'text/csv');
     res.attachment(`timetable-sem${semester}-div${division}.csv`);
     res.send(csvRows.join('\n'));
+});
+
+//register route
+app.post('/register', async (req, res) => {
+    User.register({ username: req.body.username, userRole: req.body.userRole }, req.body.password, function (err, user) {
+        if (err) {
+            console.log(err);
+            res.json(err.message);
+        } else {
+            passport.authenticate("local")(req, res, function (err) {
+                if (err) {
+                    console.log(err);
+                    return res.status(500).send("Internal Server Error");
+                } else {
+                    res.redirect("/login");
+                }
+            });
+        }
+    });
+});
+
+app.post('/login', async (req, res) => {
+    const user = new User({
+        username: req.body.username,
+        password: req.body.password,
+        userRole: req.body.userRole
+    });
+
+    userRole = req.user
+    req.login(user, function (err) {
+        if (err) {
+            console.log(err);
+        } else {
+            passport.authenticate("local")(req, res, function (err) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    if ((req.body.userRole === req.user.userRole)) {
+                        if (req.body.userRole === 'user') {
+                            res.redirect("/user");
+                        }
+                        else if (req.body.userRole === 'admin') {
+                            res.redirect("/admin");
+                        }
+                        else {
+                            res.json("Choose proper role");
+                        }
+                    }
+                    else {
+                        res.json("Choose proper role");
+                    }
+                }
+            });
+        }
+    })
 });
 
 // Start server
