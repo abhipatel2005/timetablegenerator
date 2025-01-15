@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark animate__animated animate__fadeIn">
+        <div class="container">
+            <a class="navbar-brand">Timetable Generator</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="tab-content">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="form-section">
+                        <h4>Add Subject</h4>
+                        <form action="/add-subject" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Subject Name</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" name="hasLab" class="form-check-input" id="hasLab">
+                                <label class="form-check-label">Has Lab</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Room Preference</label>
+                                <input type="text" name="roomPreference" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Weekly Lectures</label>
+                                <input type="number" name="weeklyLectures" class="form-control" min="1" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Weekly Labs</label>
+                                <input type="number" name="weeklyLabs" class="form-control" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Credits</label>
+                                <input type="number" name="credits" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add Subject</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="form-section">
+                        <h4>Add Faculty</h4>
+                        <form action="/add-faculty" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Faculty Name</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Subjects</label>
+                                <select name="subjects" class="form-select" multiple>
+                                    <% subjects.forEach((subject)=> { %>
+                                        <option value="<%= subject.id %>">
+                                            <%= subject.name %>
+                                        </option>
+                                        <% }) %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Max Hours</label>
+                                <input type="number" name="maxHours" class="form-control" min="1" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add Faculty</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <section class="timetable-section">
+                <% Object.keys(timetables).forEach((semester)=> { %>
+                    <div class="semester-block mb-4">
+                        <h2 class="mb-3">Semester <%= semester %>
+                        </h2>
+                        <% ['A', 'B' ].forEach((division)=> { %>
+                            <div class="division-block mb-4">
+                                <h3 class="mb-3">Division <%= division %>
+                                </h3>
+                                <div class="table-responsive">
+                                    <table class="table timetable">
+                                        <thead>
+                                            <tr>
+                                                <th>Day</th>
+                                                <% slots.forEach((slot)=> { %>
+                                                    <th>
+                                                        <%= slot.time %>
+                                                    </th>
+                                                    <% }) %>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% days.forEach((day)=> { %>
+                                                <tr>
+                                                    <td>
+                                                        <%= day %>
+                                                    </td>
+                                                    <% slots.forEach((slot)=> { %>
+                                                        <td>
+                                                            <% const
+                                                                session=timetables[semester][division][day][slot.time];
+                                                                %>
+                                                                <% if (session) { %>
+                                                                    <%= session.subject %> (<%= session.type %>)<br>
+                                                                            <%= session.facultyName %><br>
+                                                                                <%= session.room %>
+                                                                                    <% if (session.type==='Lab' ) { %>
+                                                                                        (2 Hours)
+                                                                                        <% } %>
+                                                                                            <% } else { %>
+                                                                                                -
+                                                                                                <% } %>
+                                                        </td>
+                                                        <% }) %>
+                                                </tr>
+                                                <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <% }) %>
+                    </div>
+                    <% }) %>
+            </section>
+
+            <form action="/generate-timetable" method="POST" class="text-center mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">Generate Timetable</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
