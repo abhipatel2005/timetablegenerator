@@ -4,50 +4,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timetable Generator</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    <style>
-        :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --accent-color: #4895ef;
-        }
-
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-            padding: 1rem 0;
-        }
-
-        h3 {
-            animation: fade 2s infinite linear;
-        }
-
-        @keyframes fade {
-            0% {
-                opacity: 100;
-            }
-
-            100% {
-                opacity: 0;
-            }
-        }
-    </style>
+    <title>Semester Timetable</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark animate__animated animate__fadeIn">
-        <div class="container">
-            <a class="navbar-brand">Timetable Generator</a>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">Semester Timetable</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label for="semesterSelect" class="form-label">Select Semester:</label>
+                            <select class="form-select" id="semesterSelect">
+                                <option value="">Choose semester...</option>
+                                <option value="sem1">Semester 1</option>
+                                <option value="sem2">Semester 2</option>
+                                <option value="sem3">Semester 3</option>
+                                <option value="sem4">Semester 4</option>
+                            </select>
+                        </div>
+
+                        <!-- Timetables (Initially Hidden) -->
+                        <div class="timetable-container">
+                            <!-- Semester 1 Timetable -->
+                            <div id="sem1" class="timetable d-none">
+                                <h4 class="mb-3">Semester 1 Timetable</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Time</th>
+                                                <th>Monday</th>
+                                                <th>Tuesday</th>
+                                                <th>Wednesday</th>
+                                                <th>Thursday</th>
+                                                <th>Friday</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>9:00 - 10:00</td>
+                                                <td>Mathematics</td>
+                                                <td>Physics</td>
+                                                <td>Chemistry</td>
+                                                <td>English</td>
+                                                <td>Computer</td>
+                                            </tr>
+                                            <tr>
+                                                <td>10:00 - 11:00</td>
+                                                <td>Physics</td>
+                                                <td>Chemistry</td>
+                                                <td>Mathematics</td>
+                                                <td>Computer</td>
+                                                <td>English</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Semester 2 Timetable -->
+                            <div id="sem2" class="timetable d-none">
+                                <h4 class="mb-3">Semester 2 Timetable</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Time</th>
+                                                <th>Monday</th>
+                                                <th>Tuesday</th>
+                                                <th>Wednesday</th>
+                                                <th>Thursday</th>
+                                                <th>Friday</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>9:00 - 10:00</td>
+                                                <td>Database</td>
+                                                <td>Networks</td>
+                                                <td>Java</td>
+                                                <td>Python</td>
+                                                <td>Web Dev</td>
+                                            </tr>
+                                            <tr>
+                                                <td>10:00 - 11:00</td>
+                                                <td>Networks</td>
+                                                <td>Java</td>
+                                                <td>Python</td>
+                                                <td>Web Dev</td>
+                                                <td>Database</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Add more semesters similarly -->
+                            <div id="sem3" class="timetable d-none">
+                                <h4 class="mb-3">Semester 3 Timetable</h4>
+                                <div class="alert alert-info">
+                                    Loading timetable for Semester 3...
+                                </div>
+                            </div>
+
+                            <div id="sem4" class="timetable d-none">
+                                <h4 class="mb-3">Semester 4 Timetable</h4>
+                                <div class="alert alert-info">
+                                    Loading timetable for Semester 4...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </nav>
-    <h3>this is student side, will be available soon...</h3>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('semesterSelect').addEventListener('change', function () {
+            // Hide all timetables
+            document.querySelectorAll('.timetable').forEach(table => {
+                table.classList.add('d-none');
+            });
+
+            // Show selected timetable
+            const selectedValue = this.value;
+            if (selectedValue) {
+                document.getElementById(selectedValue).classList.remove('d-none');
+            }
+        });
+
+        // In a real application, you would fetch the timetable data from your backend
+        // Example of how to fetch and update the timetable:
+        /*
+        async function fetchTimetable(semester) {
+            try {
+                const response = await fetch(`/api/timetable/${semester}`);
+                const data = await response.json();
+                // Update the timetable with the fetched data
+                updateTimetable(semester, data);
+            } catch (error) {
+                console.error('Error fetching timetable:', error);
+            }
+        }
+        */
+    </script>
 </body>
 
 </html>

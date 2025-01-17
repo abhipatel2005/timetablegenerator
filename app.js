@@ -206,103 +206,106 @@ const scheduleSession = (semester, division, day, time, subject, facultyMember, 
 
 // Generate timetable
 app.post('/generate-timetable', (req, res) => {
-    try {
-        // Reset timetables and faculty hours
-        timetables = initializeTimetables();
-        faculty.forEach(f => f.currentHours = 0);
+    if (req.isAuthenticated()) {
+        try {
+            // Reset timetables and faculty hours
+            timetables = initializeTimetables();
+            faculty.forEach(f => f.currentHours = 0);
 
-        // Group subjects by semester
-        const semesterSubjects = {};
-        subjects.forEach(subject => {
-            if (!semesterSubjects[subject.semester]) {
-                semesterSubjects[subject.semester] = [];
-            }
-            semesterSubjects[subject.semester].push(subject);
-        });
+            // Group subjects by semester
+            const semesterSubjects = {};
+            subjects.forEach(subject => {
+                if (!semesterSubjects[subject.semester]) {
+                    semesterSubjects[subject.semester] = [];
+                }
+                semesterSubjects[subject.semester].push(subject);
+            });
 
-        // Process each semester
-        Object.entries(semesterSubjects).forEach(([semester, subjectList]) => {
-            ['A', 'B'].forEach(division => {
-                // Schedule labs first (they need 2 consecutive slots)
-                subjectList.filter(s => s.hasLab).forEach(subject => {
-                    let labsScheduled = 0;
-                    while (labsScheduled < subject.weeklyLabs) {
-                        let scheduled = false;
+            // Process each semester
+            Object.entries(semesterSubjects).forEach(([semester, subjectList]) => {
+                ['A', 'B'].forEach(division => {
+                    // Schedule labs first (they need 2 consecutive slots)
+                    subjectList.filter(s => s.hasLab).forEach(subject => {
+                        let labsScheduled = 0;
+                        while (labsScheduled < subject.weeklyLabs) {
+                            let scheduled = false;
 
-                        // Try to schedule in preferred afternoon slots first
-                        days.forEach(day => {
-                            if (scheduled || labsScheduled >= subject.weeklyLabs) return;
+                            // Try to schedule in preferred afternoon slots first
+                            days.forEach(day => {
+                                if (scheduled || labsScheduled >= subject.weeklyLabs) return;
 
-                            // Try slot 5 (2:00-4:00) first for labs
-                            const labSlot = slots[4]; // 2:00-4:00 slot
-                            const facultyMember = findAvailableFaculty(subject.id, day, labSlot.time);
-
-                            if (facultyMember &&
-                                isSlotAvailable(semester, division, day, labSlot.time) &&
-                                isRoomAvailable(subject.roomPreference, day, labSlot.time)) {
-
-                                if (scheduleSession(semester, division, day, labSlot.time, subject, facultyMember, 'Lab', 1)) {
-                                    scheduled = true;
-                                    labsScheduled++;
-                                }
-                            }
-                        });
-
-                        if (!scheduled) break; // If we couldn't schedule, move to next subject
-                    }
-                });
-
-                // Schedule lectures
-                subjectList.forEach(subject => {
-                    let lecturesScheduled = 0;
-                    while (lecturesScheduled < subject.weeklyLectures) {
-                        let scheduled = false;
-
-                        days.forEach(day => {
-                            if (scheduled || lecturesScheduled >= subject.weeklyLectures) return;
-
-                            // Try morning slots for lectures
-                            for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
-                                if (scheduled) break;
-
-                                const slot = slots[slotIndex];
-                                const facultyMember = findAvailableFaculty(subject.id, day, slot.time);
+                                // Try slot 5 (15:15-17:15) first for labs
+                                const labSlot = slots[4]; // 15:15-17:15 slot
+                                const facultyMember = findAvailableFaculty(subject.id, day, labSlot.time);
 
                                 if (facultyMember &&
-                                    isSlotAvailable(semester, division, day, slot.time) &&
-                                    isRoomAvailable(subject.roomPreference, day, slot.time)) {
+                                    isSlotAvailable(semester, division, day, labSlot.time) &&
+                                    isRoomAvailable(subject.roomPreference, day, labSlot.time)) {
 
-                                    if (scheduleSession(semester, division, day, slot.time, subject, facultyMember, 'Lecture', 1)) {
+                                    if (scheduleSession(semester, division, day, labSlot.time, subject, facultyMember, 'Lab', 1)) {
                                         scheduled = true;
-                                        lecturesScheduled++;
+                                        labsScheduled++;
                                     }
                                 }
-                            }
-                        });
+                            });
 
-                        if (!scheduled) break; // If we couldn't schedule, move to next subject
-                    }
+                            if (!scheduled) break; // If we couldn't schedule, move to next subject
+                        }
+                    });
+
+                    // Schedule lectures
+                    subjectList.forEach(subject => {
+                        let lecturesScheduled = 0;
+                        while (lecturesScheduled < subject.weeklyLectures) {
+                            let scheduled = false;
+
+                            days.forEach(day => {
+                                if (scheduled || lecturesScheduled >= subject.weeklyLectures) return;
+
+                                // Try morning slots for lectures
+                                for (let slotIndex = 0; slotIndex < 4; slotIndex++) {
+                                    if (scheduled) break;
+
+                                    const slot = slots[slotIndex];
+                                    const facultyMember = findAvailableFaculty(subject.id, day, slot.time);
+
+                                    if (facultyMember &&
+                                        isSlotAvailable(semester, division, day, slot.time) &&
+                                        isRoomAvailable(subject.roomPreference, day, slot.time)) {
+
+                                        if (scheduleSession(semester, division, day, slot.time, subject, facultyMember, 'Lecture', 1)) {
+                                            scheduled = true;
+                                            lecturesScheduled++;
+                                        }
+                                    }
+                                }
+                            });
+
+                            if (!scheduled) break; // If we couldn't schedule, move to next subject
+                        }
+                    });
                 });
             });
-        });
-
-        res.redirect('/');
-    } catch (error) {
-        console.error('Timetable generation error:', error);
-        res.render('index', {
-            subjects,
-            faculty,
-            timetables,
-            slots,
-            days,
-            error: error.message
-        });
+            res.redirect('/admin');
+        } catch (error) {
+            console.error('Timetable generation error:', error);
+            res.render('index', {
+                subjects,
+                faculty,
+                timetables,
+                slots,
+                days,
+                error: error.message
+            });
+        }
+    } else {
+        res.redirect('/login');
     }
 });
 
 // Routes
 app.get('/user', (req, res) => {
-    if (req.isAuthenticated() && req.user.userRole === 'user') {
+    if (req.isAuthenticated()) {
         res.render('user')
     }
 });
@@ -356,29 +359,29 @@ app.post('/add-faculty', (req, res) => {
 });
 
 // Export functionality
-app.get('/export/:semester/:division', (req, res) => {
-    const semester = req.params.semester;
-    const division = req.params.division;
+// app.get('/export/:semester/:division', (req, res) => {
+//     const semester = req.params.semester;
+//     const division = req.params.division;
 
-    if (!timetables[semester] || !timetables[semester][division]) {
-        return res.status(404).send('Timetable not found');
-    }
+//     if (!timetables[semester] || !timetables[semester][division]) {
+//         return res.status(404).send('Timetable not found');
+//     }
 
-    const csvRows = ['Day,Time,Subject,Type,Faculty,Room'];
+//     const csvRows = ['Day,Time,Subject,Type,Faculty,Room'];
 
-    days.forEach(day => {
-        slots.forEach(slot => {
-            const session = timetables[semester][division][day][slot.time];
-            if (session.subject) {
-                csvRows.push(`${day},${slot.time},${session.subject},${session.type},${session.faculty},${session.room}`);
-            }
-        });
-    });
+//     days.forEach(day => {
+//         slots.forEach(slot => {
+//             const session = timetables[semester][division][day][slot.time];
+//             if (session.subject) {
+//                 csvRows.push(`${day},${slot.time},${session.subject},${session.type},${session.faculty},${session.room}`);
+//             }
+//         });
+//     });
 
-    res.header('Content-Type', 'text/csv');
-    res.attachment(`timetable-sem${semester}-div${division}.csv`);
-    res.send(csvRows.join('\n'));
-});
+//     res.header('Content-Type', 'text/csv');
+//     res.attachment(`timetable-sem${semester}-div${division}.csv`);
+//     res.send(csvRows.join('\n'));
+// });
 
 //register route
 app.post('/register', async (req, res) => {
